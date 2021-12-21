@@ -3,14 +3,12 @@ import pandas as pd
 import sys
 
 from collections import Counter
+from copy import deepcopy
 from functools import reduce
 from math import ceil, floor
 from operator import mul
 from queue import PriorityQueue
 from statistics import mean, median
-
-MATCHES = 12
-LOS = 1000
 
 ROTS = [
     [[1, 0, 0],
@@ -86,6 +84,8 @@ ROTS = [
      [0, 0, 1],
      [1, 0, 0]],
 ]
+MATCHES = 12
+LOS = 1000
 
 def get_input(filename):
     with open(filename, "r") as fin:
@@ -127,19 +127,36 @@ def enough_match(pa, pb, rot, dist):
                 return True
     return False
 
+def change_axis(ps, rot, dist):
+    for i in range(len(ps)):
+        ps[i] = apply_rot(ps[i], rot) + dist
+
 def intersect(scanners, a, b):
     pa = scanners[a]
     pb = scanners[b]
-    
+
+    mem = {}
+    pts = {}
+
     for p1 in pa:
         for p2 in pb:
-            for rot in ROTS:
-                p2 = apply_rot(p2, rot)
-                dist = p1 - p2
-                if comp_max_dist(dist) > 2 * LOS:
-                    continue
-                if enough_match(pa, pb, rot, dist):
+            for k, rot in enumerate(ROTS):
+                p2m = apply_rot(p2, rot)
+                dist = p1 - p2m
+                #if comp_max_dist(dist) > 2 * LOS:
+                #    continue
+
+                memkey = (k, tuple(dist))
+                mem[memkey] = mem.get(memkey, 0) + 1
+                pts[memkey] = pts.get(memkey, []) + [(deepcopy(p1), deepcopy(p2))]
+                if mem[memkey] >= MATCHES:
                     # change axis
+                    change_axis(pb, rot, dist)
+                    #tmp = sorted(mem, key=lambda x: mem[x], reverse=True)
+                    #print(str(tmp[0]) + ": " + str(mem[tmp[0]]))
+                    #print(str(tmp[1]) + ": " + str(mem[tmp[1]]))
+                    #print(str(tmp[2]) + ": " + str(mem[tmp[2]]))
+                    #print(pts[memkey])
                     return True
     return False
 
@@ -155,17 +172,24 @@ def solve1(filename):
     i = 0
     while True:
         base = known[i]
+        print("base is " + str(base))
         for j in range(len(scanners)):
             if j in known:
                 continue
             if intersect(scanners, base, j):
                 known.append(j)
+                print(str(base) + " matches " + str(j))
         i += 1
         if i == len(known):
             break
-        break
     print(known)
-    #print(scanners)
+    
+    beacons = set()
+    for scanner in scanners:
+        for p in scanner:
+            beacons.add(tuple(p))
+    count = len(beacons)
+    print(count)
 
 def solve2(filename):
     pass
