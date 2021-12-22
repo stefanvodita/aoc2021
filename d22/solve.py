@@ -62,8 +62,8 @@ def unpack_coord(coord):
 def intersect(cube1, cube2):
     xl1, yl1, zl1, xh1, yh1, zh1 = unpack_coord(cube1)
     xl2, yl2, zl2, xh2, yh2, zh2 = unpack_coord(cube2)
-    if xl2 > xh1 and yl2 > yh1 and zl2 > zh1 or \
-       xh2 < xl1 and yh2 < yl1 and zh2 < zl1:
+    if xl2 > xh1 or yl2 > yh1 or zl2 > zh1 or \
+       xh2 < xl1 or yh2 < yl1 or zh2 < zl1:
         return [cube1]
 
     xli = max(xl1, xl2)
@@ -74,34 +74,32 @@ def intersect(cube1, cube2):
     zhi = min(zh1, zh2)
     
     ncubes = [
-        [(xl1, yl1, zl1), (xli, yh1, zh1)],
+        [(xl1, yl1, zl1), (xli - 1, yh1, zh1)],
         
         
-        [(xli, yl1, zl1), (xhi, yli, zh1)],
-        
-        [(xli, yli, zl1), (xhi, yhi, zli)],
-        # [(xli, yli, zli), (xhi, yhi, zhi)],
-        [(xli, yli, zhi), (xhi, yhi, zh1)],
-        
-        [(xli, yhi, zl1), (xhi, yh1, zh1)],
+        [(xli, yl1, zl1), (xhi, yli - 1, zh1)],
         
         
-        [(xhi, yl1, zl1), (xh1, yh1, zh1)],
+        [(xli, yli, zl1), (xhi, yhi, zli - 1)],
+
+        [(xli, yli, zhi + 1), (xhi, yhi, zh1)],
+        
+        
+        [(xli, yhi + 1, zl1), (xhi, yh1, zh1)],
+        
+        
+        [(xhi + 1, yl1, zl1), (xh1, yh1, zh1)],
     ]
     
-    ncubes = list(filter(lambda cube: all(np.array(cube[0]) != np.array(cube[1])), ncubes))
+    ncubes = list(filter(lambda cube: all(np.array(cube[0]) <= np.array(cube[1])), ncubes))
     return ncubes
 
 def turn_on(ocubes, ncubes):
     for cube1 in ocubes:
+        nncubes = []
         for cube2 in ncubes:
-            nncubes = intersect(cube2, cube1)    # ret pieces of cube2 outside cube1
-            if not nncubes:
-                return []
-            if nncubes[0] != cube2:
-                break
-        ncubes.remove(cube2)
-        ncubes += nncubes
+            nncubes += intersect(cube2, cube1)    # ret pieces of cube2 outside cube1
+        ncubes = nncubes
     return ncubes
 
 def turn_off(cubes, coord):
@@ -122,7 +120,7 @@ def solve2(filename):
     cmds = list(map(lambda cmd: (cmd[0], list(zip(*cmd[1]))), cmds))
     
     cubes = []
-    for cmd in cmds[:2]:
+    for cmd in cmds:
         on, coords = cmd
         if on:
             ncubes = turn_on(cubes, [coords])   # add new cubes
